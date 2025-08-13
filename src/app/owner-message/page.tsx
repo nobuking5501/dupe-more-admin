@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import AdminHeader from '@/components/AdminHeader';
+import LogViewer from '@/components/LogViewer';
+import { log } from '@/lib/logger';
 
 interface OwnerMessage {
   id: string;
@@ -22,6 +24,7 @@ export default function OwnerMessagePage() {
   const [generating, setGenerating] = useState(false);
   const [selectedYearMonth, setSelectedYearMonth] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'draft' | 'published'>('all');
+  const [showLogViewer, setShowLogViewer] = useState(false);
 
   useEffect(() => {
     fetchMessages();
@@ -52,11 +55,14 @@ export default function OwnerMessagePage() {
 
   const generateMessage = async () => {
     if (!selectedYearMonth) {
+      log.user('OWNER_MESSAGE_GENERATE_ATTEMPT', { error: 'No year-month selected' });
       alert('年月を選択してください');
       return;
     }
 
+    log.user('OWNER_MESSAGE_GENERATE_START', { yearMonth: selectedYearMonth });
     setGenerating(true);
+    
     try {
       const response = await fetch('/api/owner-message/generate', {
         method: 'POST',
@@ -69,13 +75,24 @@ export default function OwnerMessagePage() {
       const result = await response.json();
       
       if (response.ok) {
+        log.user('OWNER_MESSAGE_GENERATE_SUCCESS', { 
+          yearMonth: selectedYearMonth,
+          messageId: result.data?.id 
+        });
         alert('オーナーメッセージが生成されました');
         fetchMessages();
       } else {
+        log.error('OWNER_MESSAGE', 'Generation failed from server', { 
+          yearMonth: selectedYearMonth, 
+          error: result.error 
+        });
         alert('生成に失敗しました: ' + result.error);
       }
     } catch (error) {
-      console.error('生成エラー:', error);
+      log.error('OWNER_MESSAGE', 'Generation failed with exception', { 
+        yearMonth: selectedYearMonth, 
+        error 
+      });
       alert('生成に失敗しました');
     } finally {
       setGenerating(false);
@@ -330,7 +347,21 @@ export default function OwnerMessagePage() {
             ))
           )}
         </div>
+
+        {/* デバッグ用ログビューアー */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="fixed bottom-4 right-4">
+            <button
+              onClick={() => setShowLogViewer(true)}
+              className="bg-gray-800 text-white px-4 py-2 rounded-full shadow-lg hover:bg-gray-700"
+            >
+              📋 ログ
+            </button>
+          </div>
+        )}
       </div>
+
+      <LogViewer isOpen={showLogViewer} onClose={() => setShowLogViewer(false)} />
     </>
   );
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase-client';
 import { ClaudeClient } from '@/lib/claude-client';
+import { log } from '@/lib/logger';
 
 interface DailyReport {
   id: string;
@@ -10,10 +11,16 @@ interface DailyReport {
 }
 
 export async function POST(request: NextRequest) {
+  const startTime = Date.now();
+  
   try {
+    log.api.request('/api/owner-message/generate', 'POST');
+    
     const { yearMonth } = await request.json();
+    log.info('OWNER_MESSAGE', 'Generation request received', { yearMonth });
     
     if (!yearMonth || !/^\d{4}-\d{2}$/.test(yearMonth)) {
+      log.warn('OWNER_MESSAGE', 'Invalid yearMonth format', { yearMonth });
       return NextResponse.json(
         { error: '年月の形式が正しくありません (YYYY-MM)' },
         { status: 400 }
@@ -26,6 +33,7 @@ export async function POST(request: NextRequest) {
     const startDate = `${yearMonth}-01`;
     const endDate = `${yearMonth}-31`;
     
+    log.supabase.query('daily_reports', 'SELECT', { startDate, endDate });
     const { data: reports, error: reportsError } = await supabase
       .from('daily_reports')
       .select(`
@@ -39,7 +47,8 @@ export async function POST(request: NextRequest) {
       .order('date', { ascending: true });
 
     if (reportsError) {
-      console.error('日報取得エラー:', reportsError);
+      log.supabase.error('daily_reports', 'SELECT', reportsError);
+      log.api.response('/api/owner-message/generate', 500, { error: reportsError });
       return NextResponse.json(
         { error: '日報データの取得に失敗しました' },
         { status: 500 }
@@ -47,11 +56,18 @@ export async function POST(request: NextRequest) {
     }
 
     if (!reports || reports.length === 0) {
+      log.warn('OWNER_MESSAGE', 'No reports found for month', { yearMonth, reportCount: 0 });
+      log.api.response('/api/owner-message/generate', 404);
       return NextResponse.json(
         { error: '指定された月の日報が見つかりません' },
         { status: 404 }
       );
     }
+
+    log.info('OWNER_MESSAGE', 'Reports retrieved successfully', { 
+      yearMonth, 
+      reportCount: reports.length 
+    });
 
     // Claude APIを使用してメッセージを生成
     const claudeClient = new ClaudeClient();
@@ -105,13 +121,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const duration = Date.now() - startTime;
+    log.info('OWNER_MESSAGE', 'Message generation completed successfully', { 
+      yearMonth, 
+      duration: `${duration}ms`,
+      messageId: result.data?.id 
+    });
+    log.api.response('/api/owner-message/generate', 200, { messageId: result.data?.id });
+
     return NextResponse.json({
       message: 'オーナーメッセージが生成されました',
       data: result.data
     });
 
   } catch (error) {
-    console.error('オーナーメッセージ生成エラー:', error);
+    const duration = Date.now() - startTime;
+    log.error('OWNER_MESSAGE', 'Message generation failed', { 
+      yearMonth: request.body, 
+      duration: `${duration}ms`,
+      error: {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      }
+    });
+    log.api.response('/api/owner-message/generate', 500, { error });
+
     return NextResponse.json(
       { error: 'オーナーメッセージの生成に失敗しました' },
       { status: 500 }
@@ -159,8 +194,17 @@ JSONで以下の形式で出力してください：
 `;
 
   try {
+    log.claude.request(prompt);
     const response = await claudeClient.generateText(prompt);
+    log.claude.response(response);
+    
     const parsedResponse = JSON.parse(response);
+    
+    log.info('OWNER_MESSAGE', 'Claude response parsed successfully', {
+      titleLength: parsedResponse.title?.length || 0,
+      bodyLength: parsedResponse.body_md?.length || 0,
+      highlightCount: parsedResponse.highlights?.length || 0
+    });
     
     return {
       title: parsedResponse.title || `${monthName}のオーナーメッセージ`,
@@ -169,7 +213,7 @@ JSONで以下の形式で出力してください：
       sources: [] // reportsのIDは後で設定
     };
   } catch (error) {
-    console.error('Claude API エラー:', error);
+    log.claude.error(error);
     
     // フォールバック: 基本的なメッセージを生成
     return {
