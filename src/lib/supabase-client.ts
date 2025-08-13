@@ -17,6 +17,13 @@ export const supabaseAdmin = supabaseServiceKey
     })
   : null
 
+console.log('Supabase configuration:', {
+  hasUrl: !!supabaseUrl,
+  hasAnonKey: !!supabaseAnonKey,
+  hasServiceKey: !!supabaseServiceKey,
+  hasAdminClient: !!supabaseAdmin
+})
+
 // データベース操作用のヘルパー関数
 export class SupabaseService {
   // 通常のクライアントも公開
@@ -56,16 +63,35 @@ export class SupabaseService {
       throw new Error('Supabase admin client is not available')
     }
 
+    console.log('Creating blog post with data:', {
+      title: data.title,
+      status: data.status,
+      author_id: data.author_id,
+      has_content: !!data.content
+    })
+
     const postData = {
       ...data,
       published_at: data.status === 'published' ? new Date().toISOString() : null
     }
 
-    return await supabaseAdmin
-      .from('blog_posts')
-      .insert([postData])
-      .select()
-      .single()
+    try {
+      const result = await supabaseAdmin
+        .from('blog_posts')
+        .insert([postData])
+        .select()
+        .single()
+
+      console.log('Blog post insert result:', {
+        error: result.error,
+        hasData: !!result.data
+      })
+
+      return result
+    } catch (error) {
+      console.error('Blog post insert error:', error)
+      throw error
+    }
   }
 
   // ブログ記事の更新
@@ -117,6 +143,8 @@ export class SupabaseService {
       throw new Error('Supabase admin client is not available')
     }
 
+    console.log('Getting staff with email:', email)
+
     let query = supabaseAdmin
       .from('staff')
       .select('*')
@@ -125,7 +153,13 @@ export class SupabaseService {
       query = query.eq('email', email)
     }
     
-    return await query
+    const result = await query
+    console.log('Staff query result:', {
+      error: result.error,
+      count: result.data?.length || 0
+    })
+    
+    return result
   }
 
   // スタッフの作成
@@ -139,10 +173,23 @@ export class SupabaseService {
       throw new Error('Supabase admin client is not available')
     }
 
-    return await supabaseAdmin
+    console.log('Creating staff:', {
+      name: data.name,
+      email: data.email,
+      role: data.role
+    })
+
+    const result = await supabaseAdmin
       .from('staff')
       .insert([data])
       .select()
       .single()
+
+    console.log('Staff creation result:', {
+      error: result.error,
+      hasData: !!result.data
+    })
+
+    return result
   }
 }

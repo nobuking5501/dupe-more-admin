@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { ClaudeService } from '@shared/lib/claude-client'
+import { ClaudeService } from '@/lib/claude-client'
 
 export async function POST(request: NextRequest) {
   try {

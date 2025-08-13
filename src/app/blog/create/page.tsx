@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import AdminHeader from '@/components/AdminHeader'
 
 export default function CreateBlogPost() {
   const [dailyReport, setDailyReport] = useState('')
@@ -75,27 +76,14 @@ export default function CreateBlogPost() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <>
+      <AdminHeader 
+        title="ブログ記事作成" 
+        subtitle="日報からブログ記事を自動生成します"
+        showBackButton={true}
+        backHref="/blog"
+      />
       <div className="max-w-4xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        {/* ヘッダー */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">
-                ブログ記事作成
-              </h1>
-              <p className="mt-2 text-gray-600">
-                日報からブログ記事を自動生成します
-              </p>
-            </div>
-            <Link
-              href="/blog"
-              className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-            >
-              ← 戻る
-            </Link>
-          </div>
-        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* 左側: 日報入力 */}
@@ -240,6 +228,6 @@ export default function CreateBlogPost() {
           </div>
         </div>
       </div>
-    </div>
+    </>
   )
 }

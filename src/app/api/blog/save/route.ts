@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { SupabaseService } from '@shared/lib/supabase-client'
+import { SupabaseService } from '@/lib/supabase-client'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const { title, content, excerpt, suggestedTags, status, originalReport } = body
+
+    console.log('Blog save request:', { title, status, hasContent: !!content })
 
     if (!title || !content) {
       return NextResponse.json(
@@ -13,11 +15,38 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // 管理者スタッフを取得または作成
+    const staffResult = await SupabaseService.getStaff('admin@dupe-more.com')
+    let adminId = null
+
+    if (staffResult.error || !staffResult.data || staffResult.data.length === 0) {
+      console.log('Creating admin staff...')
+      // 管理者スタッフが存在しない場合は作成
+      const createStaffResult = await SupabaseService.createStaff({
+        name: '管理者',
+        email: 'admin@dupe-more.com',
+        password_hash: '$2b$10$rGK.5H7K9xJ8P9Q2L3M4weOWGI7P9Q2L3M4weOWGI7',
+        role: 'admin'
+      })
+      
+      if (createStaffResult.error) {
+        console.error('Failed to create admin staff:', createStaffResult.error)
+        return NextResponse.json(
+          { success: false, error: '管理者アカウントの作成に失敗しました' },
+          { status: 500 }
+        )
+      }
+      adminId = createStaffResult.data.id
+    } else {
+      adminId = staffResult.data[0].id
+    }
+
     // 日報があれば先に保存
     let reportId = null
-    if (originalReport) {
+    if (originalReport && originalReport.trim()) {
+      console.log('Saving daily report...')
       const reportResult = await SupabaseService.createDailyReport({
-        staff_id: 'admin-id', // 現在は固定（将来的には認証から取得）
+        staff_id: adminId,
         date: new Date().toISOString().split('T')[0],
         content: originalReport
       })
@@ -26,16 +55,18 @@ export async function POST(request: NextRequest) {
         console.error('Daily report save error:', reportResult.error)
       } else {
         reportId = reportResult.data?.id
+        console.log('Daily report saved:', reportId)
       }
     }
 
     // ブログ記事をSupabaseに保存
+    console.log('Saving blog post with author_id:', adminId)
     const result = await SupabaseService.createBlogPost({
       title,
       content,
       excerpt,
       status,
-      author_id: 'admin-id', // 現在は固定（将来的には認証から取得）
+      author_id: adminId,
       tags: suggestedTags || [],
       original_report_id: reportId
     })
