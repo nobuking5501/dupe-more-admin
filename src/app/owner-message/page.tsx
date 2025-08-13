@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import AdminHeader from '@/components/AdminHeader';
-import LogViewer from '@/components/LogViewer';
 import { log } from '@/lib/logger';
 
 interface OwnerMessage {
@@ -24,7 +23,6 @@ export default function OwnerMessagePage() {
   const [generating, setGenerating] = useState(false);
   const [selectedYearMonth, setSelectedYearMonth] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'draft' | 'published'>('all');
-  const [showLogViewer, setShowLogViewer] = useState(false);
 
   useEffect(() => {
     fetchMessages();
@@ -348,20 +346,7 @@ export default function OwnerMessagePage() {
           )}
         </div>
 
-        {/* デバッグ用ログビューアー */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="fixed bottom-4 right-4">
-            <button
-              onClick={() => setShowLogViewer(true)}
-              className="bg-gray-800 text-white px-4 py-2 rounded-full shadow-lg hover:bg-gray-700"
-            >
-              📋 ログ
-            </button>
-          </div>
-        )}
-      </div>
-
-      <LogViewer isOpen={showLogViewer} onClose={() => setShowLogViewer(false)} />
+        </div>
     </>
   );
 }

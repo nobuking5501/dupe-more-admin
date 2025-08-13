@@ -40,6 +40,32 @@ export default function AdminDashboard() {
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 <div className="w-8 h-8 bg-green-500 rounded-md flex items-center justify-center">
+                  <span className="text-white text-sm font-medium">📢</span>
+                </div>
+              </div>
+              <div className="ml-4">
+                <h3 className="text-lg font-medium text-gray-900">
+                  オーナーメッセージ
+                </h3>
+                <p className="text-sm text-gray-500">
+                  月次メッセージの生成・配信
+                </p>
+              </div>
+            </div>
+            <div className="mt-4">
+              <a
+                href="/owner-message"
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
+              >
+                管理画面へ
+              </a>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className="w-8 h-8 bg-orange-500 rounded-md flex items-center justify-center">
                   <span className="text-white text-sm font-medium">🎯</span>
                 </div>
               </div>

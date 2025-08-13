@@ -1,7 +1,7 @@
 import './globals.css'
 import { Inter } from 'next/font/google'
 import { Metadata } from 'next'
-import AdminHeader from '@/components/AdminHeader'
+import DevTools from '@/components/DevTools'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -36,6 +36,7 @@ export default function RootLayout({
         <div className="min-h-screen bg-gray-50">
           {children}
         </div>
+        <DevTools />
       </body>
     </html>
   )
